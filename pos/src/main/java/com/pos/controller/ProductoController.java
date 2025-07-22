@@ -50,6 +50,23 @@ public class ProductoController {
         List<ProductoResponse> productos = productoService.findAll();
         return ResponseEntity.ok(productos);
     }
+
+    @Operation(
+        summary = "Obtener todos los productos por palabra clave o código de barras",
+        description = "Retorna una lista de todos los productos existentes"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de productos encontrada",
+            content = @Content(mediaType = "application/json", 
+            schema = @Schema(implementation = ProductoResponse.class)))
+    })
+    @GetMapping("search/{text}")
+    public ResponseEntity<List<ProductoResponse>> findProductosByText(String text) {
+        List<ProductoResponse> productos = productoService.findProductsByText(text);
+        return ResponseEntity.ok(productos);
+    }
     
     @Operation(
         summary = "Obtener un producto por ID",

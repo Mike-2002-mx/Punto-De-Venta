@@ -43,6 +43,14 @@ public class ProductoService {
         return productoMapper.toDto(producto);
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductoResponse> findProductsByText(String text){
+        List <ProductoResponse> productos = productoRepository.searchByText(text).
+                        stream().map(productoMapper::toDto)
+                        .collect(Collectors.toList());
+        return productos;
+    }
+
     @Transactional
     public ProductoResponse create(ProductoRequest productoDTO) {
         if (productoRepository.existsByCodigoBarras(productoDTO.getCodigoBarras())) {
