@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class ProductoResponse {
     private Long id;
     private String codigoBarras;

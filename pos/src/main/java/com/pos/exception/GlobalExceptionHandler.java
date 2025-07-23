@@ -34,4 +34,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
+    @ExceptionHandler(TotalSaleNotValidException.class)
+    public ResponseEntity<String> handleTotalVentaInvalido(TotalSaleNotValidException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(StockInsufficientException.class)
+    public ResponseEntity<String> manejarStockInsuficiente(StockInsufficientException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
+
 }
