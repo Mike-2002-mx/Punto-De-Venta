@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.pos.dto.DetallesVentaRequest;
 import com.pos.dto.VentaRequest;
 import com.pos.dto.VentaResponse;
-import com.pos.exception.ResourceAlreadyExistsException;
 import com.pos.exception.ResourceNotFoundException;
 import com.pos.exception.StockInsufficientException;
 import com.pos.exception.TotalSaleNotValidException;
@@ -47,10 +46,10 @@ public class VentaService {
             .collect(Collectors.toList());
     }
 
+    //Revalidar cosas
     @Transactional
     public VentaResponse registerVenta(VentaRequest request){
-
-        // 1. Validaciones básicas
+        //Validaciones básicas
         if (request == null) {
             throw new IllegalArgumentException("La solicitud de venta no puede ser nula");
         }
@@ -59,12 +58,12 @@ public class VentaService {
             throw new IllegalArgumentException("La venta debe tener al menos un producto");
         }
 
-        // 2. Validar folio único
-        if (ventaRepository.existsByFolio(request.getFolio())) {
-            throw new ResourceAlreadyExistsException("Ya existe una venta con el folio: " + request.getFolio());
+        //Validar que el pago sea mayor o igual al total
+        if(request.getPagoCon().compareTo(request.getTotal()) < 0){
+            throw new TotalSaleNotValidException("El pago no es suficiente");
         }
         
-        // 3. Validar que el total sea positivo
+        // Validar que el total sea positivo
         if (request.getTotal().compareTo(BigDecimal.ZERO) <= 0) {
             throw new TotalSaleNotValidException("El total de la venta debe ser mayor que cero");
         }
@@ -78,14 +77,13 @@ public class VentaService {
             if (detalleReq.getCantidad() <= 0) {
                 throw new IllegalArgumentException("La cantidad debe ser mayor que cero");
             }
-            
-            if (detalleReq.getPrecioVenta().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException("El precio unitario debe ser mayor que cero");
-            }
 
             // Buscar producto
             Producto producto = productoRepository.findById(detalleReq.getIdProducto())
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + detalleReq.getIdProducto()));
+
+            //Obtener de la base de datos el precio unitario del procucto
+            BigDecimal precioUnitario = producto.getPrecioVenta();
 
             // Validar stock ANTES de cualquier modificación
             if (producto.getStockActual() < detalleReq.getCantidad()) {
@@ -94,7 +92,7 @@ public class VentaService {
             }
 
             // Calcular subtotal
-            BigDecimal subtotal = detalleReq.getPrecioVenta().multiply(new BigDecimal(detalleReq.getCantidad()));
+            BigDecimal subtotal = precioUnitario.multiply(new BigDecimal(detalleReq.getCantidad()));
             totalCalculado = totalCalculado.add(subtotal);
             
         }
@@ -109,11 +107,18 @@ public class VentaService {
         }
 
         try {
-            log.info("Antes de guardar venta - Folio: {}", request.getFolio());
             // 6. Guardar venta en la base de datos
             Venta venta = ventaMapper.toEntity(request);
+            //Generar folio
+            Integer lastFolio = (ventaRepository.findLastFolioNumber()) + 1;
+            System.out.println(lastFolio);
+            String folio = String.format("%06d", lastFolio);
+            venta.setFolio(folio);
+
+            //Calcular cambio 
+            venta.setCambio(request.getPagoCon().subtract(totalCalculado));
+
             venta = ventaRepository.save(venta);
-            ventaRepository.flush();
             log.info("Venta guardada con ID: {} y folio: {}", venta.getId(), venta.getFolio());
 
             // 7. Segunda pasada: actualizar stock y crear detalles
@@ -128,6 +133,10 @@ public class VentaService {
 
                 // Crear y guardar detalle de venta
                 DetallesVenta detalle = detallesVentaMapper.toEntity(validado);
+                BigDecimal precioVentaUnitario = producto.getPrecioVenta();
+                detalle.setPrecioVenta(precioVentaUnitario);
+                BigDecimal subtotalVenta = precioVentaUnitario.multiply(new BigDecimal(validado.getCantidad()));
+                detalle.setSubtotal(subtotalVenta);
                 detalle.setProducto(producto);
                 detalle.setVenta(venta); 
 
@@ -147,7 +156,7 @@ public class VentaService {
             return ventaResponse;
         
         } catch (Exception e) {
-            log.error("Error al registrar venta con folio: {}", request.getFolio(), e);
+            log.error("Error al registrar venta con total: {}", request.getTotal(), e);
             throw e; // Re-lanzar para que @Transactional haga rollback
         }
     }

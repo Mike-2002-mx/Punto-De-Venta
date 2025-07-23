@@ -11,10 +11,8 @@ public class VentaMapper {
     
     public Venta toEntity(VentaRequest request){
         return Venta.builder()
-                .folio(request.getFolio())
                 .total(request.getTotal())
                 .pagoCon(request.getPagoCon())
-                .cambio(request.getCambio())
                 .build();
     }
 

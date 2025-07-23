@@ -12,8 +12,6 @@ public class DetallesVentaMapper {
     public DetallesVenta toEntity(DetallesVentaRequest request){
         return DetallesVenta.builder()
                 .cantidad(request.getCantidad())
-                .precioVenta(request.getPrecioVenta())
-                .subtotal(request.getSubtotal())
                 .build();
     }
 
