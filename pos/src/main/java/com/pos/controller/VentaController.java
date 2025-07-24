@@ -1,7 +1,7 @@
 package com.pos.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,8 +43,8 @@ public class VentaController {
             schema = @Schema(implementation = VentaResponse.class)))
     })
     @GetMapping
-    public ResponseEntity<List<VentaResponse>> findAll() {
-        List<VentaResponse> ventas = ventaService.findAll();
+    public ResponseEntity<Page<VentaResponse>> getAll(Pageable pageable) {
+        Page<VentaResponse> ventas = ventaService.findAll(pageable);
         return ResponseEntity.ok(ventas);
     }
 

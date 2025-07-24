@@ -3,12 +3,17 @@ package com.pos.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.dto.DetallesVentaRequest;
+import com.pos.dto.DetallesVentaResponse;
 import com.pos.dto.VentaRequest;
 import com.pos.dto.VentaResponse;
 import com.pos.exception.ResourceNotFoundException;
@@ -39,14 +44,41 @@ public class VentaService {
 
     private static final Logger log = LoggerFactory.getLogger(VentaService.class);
 
-    @Transactional(readOnly = true)
-    public List<VentaResponse> findAll(){
-        return ventaRepository.findAll().
-            stream().map(ventaMapper::toDto)
+    public Page<VentaResponse> findAll(Pageable pageable){
+        //Obtener todas las ventas
+        Page<Venta> ventasPage = ventaRepository.findAll(pageable);
+
+        //Convertir ventas a una lista de VentasResponse
+        List<VentaResponse> ventas = ventasPage
+            .getContent()
+            .stream()
+            .map(ventaMapper::toDto)
             .collect(Collectors.toList());
+
+        //Hacer una lista de ids de todas las ventas
+        List<Long> ventaIds = ventas.stream()
+        .map(VentaResponse::getId)
+        .collect(Collectors.toList());
+
+        //Llamamos al metodo findByVenta_IdIn 
+        //SELECT * FROM detalles_venta WHERE id_venta IN (?, ?, ?, ...);
+        List<DetallesVenta> detalles = detallesVentaRepository.findByVenta_IdIn(ventaIds);
+
+        Map<Long, List<DetallesVentaResponse>> detallesPorVenta = detalles
+        .stream()
+        .collect(Collectors.groupingBy(
+            d -> d.getVenta().getId(),  // o d.getVenta().getId()
+            Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
+        ));
+
+        for (VentaResponse venta : ventas) {
+            venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
+        }
+
+        return new PageImpl<>(ventas, pageable, ventasPage.getTotalElements());
+
     }
 
-    //Revalidar cosas
     @Transactional
     public VentaResponse registerVenta(VentaRequest request){
         //Validaciones básicas
@@ -111,7 +143,6 @@ public class VentaService {
             Venta venta = ventaMapper.toEntity(request);
             //Generar folio
             Integer lastFolio = (ventaRepository.findLastFolioNumber()) + 1;
-            System.out.println(lastFolio);
             String folio = String.format("%06d", lastFolio);
             venta.setFolio(folio);
 
@@ -161,67 +192,3 @@ public class VentaService {
         }
     }
 }
-
-    //     //Guardar venta en la base de datos y generar id
-    //     Venta venta = ventaMapper.toEntity(request);
-    //     venta = ventaRepository.save(venta);
-    //     System.out.println("VENTA GUARDADA SERVICE: " + venta.toString());
-
-    //     // Procesar productos
-    //     List<DetallesVenta> detallesGuardados = new ArrayList<>();
-    //     BigDecimal totalCalculado = BigDecimal.ZERO;
-
-    //     for (DetallesVentaRequest detalleReq : request.getProductos()) {
-    //         System.out.println("Service: DetallesVentaRequest enviado -> " + detalleReq.toString());
-    //         Producto producto = productoRepository.findById(detalleReq.getIdProducto())
-    //             .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + detalleReq.getIdProducto()));
-
-    //         // Validar stock
-    //         if(producto.getStockActual() < detalleReq.getCantidad()) {
-    //             throw new StockInsufficientException("Stock insuficiente para el producto: " + producto.getDescripcion());
-    //         }
-
-    //         // Actualizar stock
-    //         producto.setStockActual(producto.getStockActual() - detalleReq.getCantidad());
-    //         productoRepository.save(producto);
-
-    //         // Crear detalle de venta
-    //         DetallesVenta detalle = new DetallesVenta();
-    //         detalle = detallesVentaMapper.toEntity(detalleReq);
-    //         detalle.setProducto(producto);
-    //         detalle.setVenta(venta);
-    //         System.out.println("Service: DetallesVenta Para Guardar -> "+ detalle.toString());
-    //         detallesGuardados.add(detallesVentaRepository.save(detalle));
-    //         totalCalculado = totalCalculado.add(detalle.getSubtotal());
-    //     }
-    //     VentaResponse ventaResponse = ventaMapper.toDto(venta);
-    //     return ventaResponse;
-    // }
-
-//-----------------------
-
-        // //Lista de productos vendidos
-        // List<DetallesVentaRequest> productosVendidos = request.getProductos();
-
-        // //Validar existencia en stock y existencia real de producto
-        // for (DetallesVentaRequest detallesProducto : productosVendidos) {
-        //     Producto producto = productoRepository.findById(detallesProducto.getIdProducto()).orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + detallesProducto.getIdProducto()));
-
-        //     if(producto.getStockActual() < detallesProducto.getCantidad()){
-        //         throw new StockInsufficientException("Stock insuficiente para el producto:" + producto.getDescripcion());
-        //     } else{
-        //         producto.setStockActual(producto.getStockActual() - detallesProducto.getCantidad()); 
-        //     }
-        // }
-
-        // //Si todo sale bien agregamos productos DetallesVenta
-        // for (DetallesVentaRequest productosListo : productosVendidos) {
-
-        //     Producto producto = productoRepository.findById(productosListo.getIdProducto()).orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + productosListo.getIdProducto()));
-
-        //     DetallesVenta detallesVenta = detallesVentaMapper.toEntity(productosListo);
-        //     detallesVenta.setProducto(producto);
-        //     detallesVenta.setVenta(venta);
-
-        //     detallesVenta = detallesVentaRepository.save(detallesVenta);
-        // }
