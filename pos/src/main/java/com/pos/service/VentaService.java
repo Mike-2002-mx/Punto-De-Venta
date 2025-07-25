@@ -52,35 +52,6 @@ public class VentaService {
 
         List<VentaResponse> ventas = mapearVentasConDetalles(ventasPage);
 
-        // //Convertir ventas a una lista de VentasResponse
-        // List<VentaResponse> ventas = ventasPage
-        //     .getContent()
-        //     .stream()
-        //     .map(ventaMapper::toDto)
-        //     .collect(Collectors.toList());
-
-        // //Hacer una lista de ids de todas las ventas
-        // List<Long> ventaIds = ventas.stream()
-        // .map(VentaResponse::getId)
-        // .collect(Collectors.toList());
-
-        // //Llamamos al metodo findByVenta_IdIn 
-        // //SELECT * FROM detalles_venta WHERE id_venta IN (?, ?, ?, ...);
-        // List<DetallesVenta> detalles = detallesVentaRepository.findByVenta_IdIn(ventaIds);
-
-        // // Agrupar detalles por ID de venta
-        // Map<Long, List<DetallesVentaResponse>> detallesPorVenta = detalles
-        // .stream()
-        // .collect(Collectors.groupingBy(
-        //     d -> d.getVenta().getId(),
-        //     Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
-        // ));
-
-        // //  Asignar productos vendidos a cada venta
-        // for (VentaResponse venta : ventas) {
-        //     venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
-        // }
-
         //  Devolver la página con resultados
         return new PageImpl<>(ventas, pageable, ventasPage.getTotalElements());
     }
@@ -102,37 +73,19 @@ public class VentaService {
         }
 
         List<VentaResponse> ventas = mapearVentasConDetalles(rangoVentas);
-        
-        // //Convertir ventas a una lista de VentasResponse
-        // List<VentaResponse> ventas = rangoVentas
-        //     .getContent()
-        //     .stream()
-        //     .map(ventaMapper::toDto)
-        //     .collect(Collectors.toList());
-        
-        // //Hacer una lista de ids de todas la ventas
-        // List<Long> ventaIds = ventas.stream()
-        //     .map(VentaResponse::getId)
-        //     .collect(Collectors.toList());
-
-        // //Llamamos al metodo findByVenta_IdIn 
-        // //SELECT * FROM detalles_venta WHERE id_venta IN (?, ?, ?, ...);
-        // List<DetallesVenta> detalles = detallesVentaRepository.findByVenta_IdIn(ventaIds);
-
-        // // Agrupar detalles por ID de venta
-        // Map<Long, List<DetallesVentaResponse>> detallesPorVenta = detalles
-        // .stream()
-        // .collect(Collectors.groupingBy(
-        //     d -> d.getVenta().getId(),
-        //     Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
-        // ));
-
-        // //  Asignar productos vendidos a cada venta
-        // for (VentaResponse venta : ventas) {
-        //     venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
-        // }
 
         return new PageImpl<>(ventas, pageable, rangoVentas.getTotalElements());
+    }
+
+    public VentaResponse findByFolio(String folio){
+        Venta venta = ventaRepository.findByFolio(folio).orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con folio: " + folio));
+        List<DetallesVentaResponse> detallesVenta = detallesVentaRepository.findByIdVenta(venta.getId())
+            .stream()
+            .map(detallesVentaMapper::toDto)
+            .collect(Collectors.toList());
+        VentaResponse ventaResponse = ventaMapper.toDto(venta);
+        ventaResponse.setProductosVendidos(detallesVenta);
+        return ventaResponse;
     }
 
     private List<VentaResponse> mapearVentasConDetalles(Page<Venta> rangoVentas) {
@@ -164,7 +117,6 @@ public class VentaService {
         for (VentaResponse venta : ventas) {
             venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
         }
-
         return ventas;
     }
 

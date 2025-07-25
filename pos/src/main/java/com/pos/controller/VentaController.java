@@ -86,6 +86,25 @@ public class VentaController {
     }
 
     @Operation(
+        summary = "Obtener todas las ventas por folio",
+        description = "Retorna una lista de todas las ventas existentes por folio"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Ventas encontradas",
+            content = @Content(mediaType = "application/json", 
+            schema = @Schema(implementation = VentaResponse.class)))
+    })
+    @GetMapping("/folio")
+    public ResponseEntity<VentaResponse> getByFolio(
+        @RequestParam(value = "folio", required = false) String folio
+    ) {
+        VentaResponse venta = ventaService.findByFolio(folio);
+        return ResponseEntity.ok(venta);
+    }
+
+    @Operation(
         summary = "Registar una nueva venta",
         description = "Registra una nueva venta y retorna la venta creada"
     )
