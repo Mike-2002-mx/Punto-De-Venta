@@ -1,15 +1,21 @@
 package com.pos.controller;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pos.dto.BuscarVentaRequest;
 import com.pos.dto.VentaRequest;
 import com.pos.dto.VentaResponse;
 import com.pos.service.VentaService;
@@ -45,6 +51,37 @@ public class VentaController {
     @GetMapping
     public ResponseEntity<Page<VentaResponse>> getAll(Pageable pageable) {
         Page<VentaResponse> ventas = ventaService.findAll(pageable);
+        return ResponseEntity.ok(ventas);
+    }
+
+    @Operation(
+        summary = "Obtener todas las ventas por fecha",
+        description = "Retorna una lista de todas las ventas existentes"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Ventas encontradas",
+            content = @Content(mediaType = "application/json", 
+            schema = @Schema(implementation = VentaResponse.class)))
+    })
+    @GetMapping("/buscarVenta")
+    public ResponseEntity<Page<VentaResponse>> getAllByFechaAndProduct(
+        @RequestParam("fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+        @RequestParam("fechaFin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+        @RequestParam(value = "idProducto", required = false) Long idProducto,
+        Pageable pageable
+    ) {
+
+        // Convertir LocalDate a LocalDateTime
+        LocalDateTime inicio = fechaInicio.atStartOfDay(); 
+        LocalDateTime fin = fechaFin.plusDays(1).atStartOfDay();
+
+        BuscarVentaRequest request = new BuscarVentaRequest();
+        request.setFechaInicio(inicio);
+        request.setFechaFin(fin);
+        request.setIdProducto(idProducto);
+        Page<VentaResponse> ventas = ventaService.findByFechaAndProducto(request, pageable);
         return ResponseEntity.ok(ventas);
     }
 

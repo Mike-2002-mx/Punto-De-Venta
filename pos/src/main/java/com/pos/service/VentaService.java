@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.pos.dto.BuscarVentaRequest;
 import com.pos.dto.DetallesVentaRequest;
 import com.pos.dto.DetallesVentaResponse;
 import com.pos.dto.VentaRequest;
@@ -29,6 +30,7 @@ import com.pos.repository.ProductoRepository;
 import com.pos.repository.VentaRepository;
 
 import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,36 +50,124 @@ public class VentaService {
         //Obtener todas las ventas
         Page<Venta> ventasPage = ventaRepository.findAll(pageable);
 
-        //Convertir ventas a una lista de VentasResponse
-        List<VentaResponse> ventas = ventasPage
+        List<VentaResponse> ventas = mapearVentasConDetalles(ventasPage);
+
+        // //Convertir ventas a una lista de VentasResponse
+        // List<VentaResponse> ventas = ventasPage
+        //     .getContent()
+        //     .stream()
+        //     .map(ventaMapper::toDto)
+        //     .collect(Collectors.toList());
+
+        // //Hacer una lista de ids de todas las ventas
+        // List<Long> ventaIds = ventas.stream()
+        // .map(VentaResponse::getId)
+        // .collect(Collectors.toList());
+
+        // //Llamamos al metodo findByVenta_IdIn 
+        // //SELECT * FROM detalles_venta WHERE id_venta IN (?, ?, ?, ...);
+        // List<DetallesVenta> detalles = detallesVentaRepository.findByVenta_IdIn(ventaIds);
+
+        // // Agrupar detalles por ID de venta
+        // Map<Long, List<DetallesVentaResponse>> detallesPorVenta = detalles
+        // .stream()
+        // .collect(Collectors.groupingBy(
+        //     d -> d.getVenta().getId(),
+        //     Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
+        // ));
+
+        // //  Asignar productos vendidos a cada venta
+        // for (VentaResponse venta : ventas) {
+        //     venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
+        // }
+
+        //  Devolver la página con resultados
+        return new PageImpl<>(ventas, pageable, ventasPage.getTotalElements());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<VentaResponse> findByFechaAndProducto(BuscarVentaRequest request, Pageable pageable){
+
+        if (request.getFechaInicio().isAfter(request.getFechaFin())) {
+            throw new IllegalArgumentException("La fecha limite no puede ser antes que la fecha de inicio");
+        } 
+
+        Page<Venta> rangoVentas;
+
+        //Obtener todas las ventas por fecha o por fecha y producto
+        if(request.getIdProducto() == null){
+            rangoVentas = ventaRepository.findVentasPorFecha(request.getFechaInicio() , request.getFechaFin(), pageable);
+        } else{
+            rangoVentas = ventaRepository.findVentasPorFechaAndIdProducto(request.getFechaInicio() , request.getFechaFin(), request.getIdProducto(), pageable);
+        }
+
+        List<VentaResponse> ventas = mapearVentasConDetalles(rangoVentas);
+        
+        // //Convertir ventas a una lista de VentasResponse
+        // List<VentaResponse> ventas = rangoVentas
+        //     .getContent()
+        //     .stream()
+        //     .map(ventaMapper::toDto)
+        //     .collect(Collectors.toList());
+        
+        // //Hacer una lista de ids de todas la ventas
+        // List<Long> ventaIds = ventas.stream()
+        //     .map(VentaResponse::getId)
+        //     .collect(Collectors.toList());
+
+        // //Llamamos al metodo findByVenta_IdIn 
+        // //SELECT * FROM detalles_venta WHERE id_venta IN (?, ?, ?, ...);
+        // List<DetallesVenta> detalles = detallesVentaRepository.findByVenta_IdIn(ventaIds);
+
+        // // Agrupar detalles por ID de venta
+        // Map<Long, List<DetallesVentaResponse>> detallesPorVenta = detalles
+        // .stream()
+        // .collect(Collectors.groupingBy(
+        //     d -> d.getVenta().getId(),
+        //     Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
+        // ));
+
+        // //  Asignar productos vendidos a cada venta
+        // for (VentaResponse venta : ventas) {
+        //     venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
+        // }
+
+        return new PageImpl<>(ventas, pageable, rangoVentas.getTotalElements());
+    }
+
+    private List<VentaResponse> mapearVentasConDetalles(Page<Venta> rangoVentas) {
+        // Convertir ventas a una lista de VentaResponse
+        List<VentaResponse> ventas = rangoVentas
             .getContent()
             .stream()
             .map(ventaMapper::toDto)
             .collect(Collectors.toList());
 
-        //Hacer una lista de ids de todas las ventas
-        List<Long> ventaIds = ventas.stream()
-        .map(VentaResponse::getId)
-        .collect(Collectors.toList());
+        // Obtener lista de IDs
+        List<Long> ventaIds = ventas
+            .stream()
+            .map(VentaResponse::getId)
+            .collect(Collectors.toList());
 
-        //Llamamos al metodo findByVenta_IdIn 
-        //SELECT * FROM detalles_venta WHERE id_venta IN (?, ?, ?, ...);
+        // Consultar detalles por ID de venta
         List<DetallesVenta> detalles = detallesVentaRepository.findByVenta_IdIn(ventaIds);
 
+        // Agrupar detalles por ID de venta y mapearlos a DTOs
         Map<Long, List<DetallesVentaResponse>> detallesPorVenta = detalles
-        .stream()
-        .collect(Collectors.groupingBy(
-            d -> d.getVenta().getId(),  // o d.getVenta().getId()
-            Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
-        ));
+            .stream()
+            .collect(Collectors.groupingBy(
+                d -> d.getVenta().getId(),
+                Collectors.mapping(detallesVentaMapper::toDto, Collectors.toList())
+            ));
 
+        // Asignar productos vendidos a cada venta
         for (VentaResponse venta : ventas) {
             venta.setProductosVendidos(detallesPorVenta.getOrDefault(venta.getId(), List.of()));
         }
 
-        return new PageImpl<>(ventas, pageable, ventasPage.getTotalElements());
-
+        return ventas;
     }
+
 
     @Transactional
     public VentaResponse registerVenta(VentaRequest request){
