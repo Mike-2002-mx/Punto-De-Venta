@@ -2,12 +2,13 @@ package com.pos.service;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.pos.dto.AjusteInventarioRequest;
@@ -37,8 +38,41 @@ public class AjusteInventarioService {
     private final AjusteInventarioMapper ajusteInventarioMapper;
     private final ProductoAjustadoMapper productoAjustadoMapper;
 
-    
-    private static final Logger log = LoggerFactory.getLogger(AjusteInventarioService.class);
+
+    public Page<AjusteInventarioResponse> findAll(Pageable pageable){
+
+        Page<AjusteInventario> ajustesPage = ajusteInventarioRepository.findAll(pageable);
+
+        List<AjusteInventarioResponse> ajustes = ajustesPage
+                .getContent()
+                .stream()
+                .map(ajusteInventarioMapper::toDto)
+                .collect(Collectors.toList());
+        
+        //Obtener id
+        List<Long> ajustesIds = ajustes
+            .stream()
+            .map(AjusteInventarioResponse::getId)
+            .collect(Collectors.toList());
+        
+        //Listar detalles de cada producto por ID del ajuste
+        List<ProductoAjustado> productosAjustados = productoAjustadoRepository.findByAjusteInventario_IdIn(ajustesIds);
+
+        //Agrupar productos por ID de ajuste y mapearlos a DTOS
+        Map<Long, List<ProductoAjustadoResponse>> productosPorAjuste = productosAjustados.
+        stream()
+        .collect(Collectors.groupingBy(
+            p -> p.getAjusteInventario().getId(),
+            Collectors.mapping(productoAjustadoMapper::toDto, Collectors.toList())
+        ));
+
+        //Asignar productos para cada ajuste 
+        for (AjusteInventarioResponse ajuste : ajustes) {
+            ajuste.setProductosVendidos(productosPorAjuste.getOrDefault(ajuste.getId(), List.of()));
+        }
+
+        return new PageImpl<>(ajustes, pageable, ajustesPage.getTotalElements());
+    }
 
     @Transactional
     public AjusteInventarioResponse registrarAjuste(AjusteInventarioRequest request){
@@ -147,7 +181,6 @@ public class AjusteInventarioService {
             System.out.println(e + "Error al registra el ajuste de inventario");
             throw e; // 
         }
-
     }   
 
 }

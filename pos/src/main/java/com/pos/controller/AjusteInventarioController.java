@@ -1,7 +1,10 @@
 package com.pos.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +30,23 @@ import lombok.RequiredArgsConstructor;
 public class AjusteInventarioController {
     
     private final AjusteInventarioService ajusteInventarioService;
+
+    @Operation(
+        summary = "Obtener todos los ajustes",
+        description = "Retorna una lista de todas los ajustes existentes"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Ventas encontradas",
+            content = @Content(mediaType = "application/json", 
+            schema = @Schema(implementation = AjusteInventarioResponse.class)))
+    })
+    @GetMapping
+    public ResponseEntity<Page<AjusteInventarioResponse>> getAll(Pageable pageable) {
+        Page<AjusteInventarioResponse> ajustes = ajusteInventarioService.findAll(pageable);
+        return ResponseEntity.ok(ajustes);
+    }
 
         @Operation(
         summary = "Registar un nuevo ajuste de inventario",
