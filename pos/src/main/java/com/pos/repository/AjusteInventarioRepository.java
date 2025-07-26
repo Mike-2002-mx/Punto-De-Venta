@@ -3,6 +3,7 @@ package com.pos.repository;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.pos.model.AjusteInventario;
@@ -14,4 +15,10 @@ public interface AjusteInventarioRepository extends JpaRepository<AjusteInventar
     boolean existsByFolio(String folio);
     boolean existsByFolioAndIdNot(String folio, Long id);
 
+    //Consultar el ultimo folio para crear el siguiente
+    @Query(value = "SELECT (REGEXP_MATCHES(folio, '\\d+'))[1]::INTEGER " +
+                   "FROM ajustesInventario " +
+                   "ORDER BY id DESC " +
+                   "LIMIT 1", nativeQuery = true)
+    Integer findLastFolioNumber();
 }

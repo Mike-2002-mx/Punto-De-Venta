@@ -142,7 +142,7 @@ public class VentaService {
             throw new TotalSaleNotValidException("El total de la venta debe ser mayor que cero");
         }
 
-        // 4. CALCULAR Y VALIDAR CONSISTENCIA DEL TOTAL
+        // CALCULAR Y VALIDAR CONSISTENCIA DEL TOTAL
         BigDecimal totalCalculado = BigDecimal.ZERO;
         
         // Primera pasada: validar productos y calcular total
@@ -174,14 +174,14 @@ public class VentaService {
         //Detalles válidos
         List<DetallesVentaRequest> detallesValidados = request.getProductos();
 
-        // 5. VALIDAR CONSISTENCIA DEL TOTAL
+        // VALIDAR CONSISTENCIA DEL TOTAL
         if (totalCalculado.compareTo(request.getTotal()) != 0) {
             throw new TotalSaleNotValidException("El total enviado (" + request.getTotal() 
                 + ") no coincide con el total calculado (" + totalCalculado + ")");
         }
 
         try {
-            // 6. Guardar venta en la base de datos
+            // Guardar venta en la base de datos
             Venta venta = ventaMapper.toEntity(request);
             //Generar folio
             Integer lastFolio = (ventaRepository.findLastFolioNumber()) + 1;
@@ -194,7 +194,7 @@ public class VentaService {
             venta = ventaRepository.save(venta);
             log.info("Venta guardada con ID: {} y folio: {}", venta.getId(), venta.getFolio());
 
-            // 7. Segunda pasada: actualizar stock y crear detalles
+            //Segunda pasada: actualizar stock y crear detalles
             List<DetallesVenta> detallesGuardados = new ArrayList<>();
             
             for (DetallesVentaRequest validado : detallesValidados) {
@@ -220,7 +220,7 @@ public class VentaService {
                     producto.getId(), detalle.getCantidad(), detalle.getSubtotal());
             }
 
-            // 8. Preparar respuesta
+            // Preparar respuesta
             VentaResponse ventaResponse = ventaMapper.toDto(venta);
             // Si el mapper no incluye los detalles, agregarlos manualmente
             ventaResponse.setProductosVendidos(detallesGuardados.stream().map(detallesVentaMapper::toDto).collect(Collectors.toList()));

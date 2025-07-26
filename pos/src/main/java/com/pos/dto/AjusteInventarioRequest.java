@@ -20,6 +20,6 @@ public class AjusteInventarioRequest {
 
     @NotEmpty(message = "Debe haber al menos un producto en la venta.")
     @Valid
-    private List<AjusteInventarioRequest> productos;
+    private List<ProductoAjustadoRequest> productos;
 
 }

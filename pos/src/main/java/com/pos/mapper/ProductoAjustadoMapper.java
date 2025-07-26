@@ -11,7 +11,6 @@ public class ProductoAjustadoMapper {
     
     public ProductoAjustado toEntity(ProductoAjustadoRequest request){
         return ProductoAjustado.builder()
-                .id(request.getIdProducto())
                 .nuevaExistencia(request.getNuevaExistencia())
                 .build();
     }
