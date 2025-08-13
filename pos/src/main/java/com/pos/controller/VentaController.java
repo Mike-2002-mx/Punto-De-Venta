@@ -129,5 +129,4 @@ public class VentaController {
         VentaResponse nuevaVenta = ventaService.registerVenta(ventaRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaVenta);
     }
-
 }

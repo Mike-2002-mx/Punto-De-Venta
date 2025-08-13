@@ -51,6 +51,13 @@ public class ProductoService {
         return productos;
     }
 
+    @Transactional(readOnly = true)
+    public ProductoResponse findProductsByCode(String code){
+        Producto producto = productoRepository.findByCodigoBarras(code)
+                            .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con codigo: " + code));
+        return productoMapper.toDto(producto);
+    }
+
     @Transactional
     public ProductoResponse create(ProductoRequest productoDTO) {
         if (productoRepository.existsByCodigoBarras(productoDTO.getCodigoBarras())) {

@@ -12,10 +12,8 @@ public class Testear {
         //Given --Teniendo
         String nombre = "Coca cola";
         double precio = 12.5;
-        
         //When --Cuando
         Product product = new Product(nombre, precio);
-        
         //Then --Entonces
         assertEquals("Coca cola", product.getNombre());
         assertEquals(12.5, product.getPrecio());
@@ -26,7 +24,6 @@ public class Testear {
         //Given
         String nombre = "";
         double precio = 12.5;
-
         //Then
         assertThrows(IllegalArgumentException.class, 
             () -> {Product product = new Product(nombre, precio);}
@@ -37,9 +34,7 @@ public class Testear {
     void lanzarExcepcionSiPrecioEsMenorQueCero(){
         Exception ex = assertThrows(IllegalArgumentException.class, () -> {Product product = new Product("Coca", -12);}
         );
-
         assertEquals("El precio no puede ser negativo", ex.getMessage());
-        
     }
 
     @Test

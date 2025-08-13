@@ -52,7 +52,7 @@ public class ProductoController {
     }
 
     @Operation(
-        summary = "Obtener todos los productos por palabra clave o código de barras",
+        summary = "Obtener todos los productos por palabra clave",
         description = "Retorna una lista de todos los productos existentes"
     )
     @ApiResponses(value = {
@@ -63,14 +63,32 @@ public class ProductoController {
             schema = @Schema(implementation = ProductoResponse.class)))
     })
     @GetMapping("search/{text}")
-    public ResponseEntity<List<ProductoResponse>> findProductosByText(String text) {
+    public ResponseEntity<List<ProductoResponse>> findProductosByText(@PathVariable String text) {
         List<ProductoResponse> productos = productoService.findProductsByText(text);
         return ResponseEntity.ok(productos);
+    }
+
+    @Operation(
+        summary = "Devuelve producto por su codigo de barras",
+        description = "Retorna producto por su codigo de barras"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de productos encontrada",
+            content = @Content(mediaType = "application/json", 
+            schema = @Schema(implementation = ProductoResponse.class)))
+    })
+    @GetMapping("searchByCode/{code}")
+    public ResponseEntity<ProductoResponse> findProductosByCode(@PathVariable  String code) {
+        System.out.println("Code" + code);
+        ProductoResponse producto = productoService.findProductsByCode(code);
+        return ResponseEntity.ok(producto);
     }
     
     @Operation(
         summary = "Obtener un producto por ID",
-        description = "Retorna uun producto específico basada en su ID"
+        description = "Retorna un producto específico basada en su ID"
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -109,7 +127,7 @@ public class ProductoController {
             content = @Content)
     })
     @PostMapping
-    public ResponseEntity<ProductoResponse> create(@Valid @RequestBody ProductoRequest productoDTO) {
+    public ResponseEntity<ProductoResponse> create(@Valid @org.springframework.web.bind.annotation.RequestBody ProductoRequest productoDTO) {
         ProductoResponse nuevoProducto = productoService.create(productoDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoProducto);
     }
