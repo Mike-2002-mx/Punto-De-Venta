@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pos.dto.BuscarVentaRequest;
+import com.pos.dto.PaginatedResponse;
 import com.pos.dto.VentaRequest;
 import com.pos.dto.VentaResponse;
 import com.pos.service.VentaService;
+import com.pos.util.PaginationUtils;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -49,9 +51,9 @@ public class VentaController {
             schema = @Schema(implementation = VentaResponse.class)))
     })
     @GetMapping
-    public ResponseEntity<Page<VentaResponse>> getAll(Pageable pageable) {
+    public PaginatedResponse<VentaResponse> getAll(Pageable pageable) {
         Page<VentaResponse> ventas = ventaService.findAll(pageable);
-        return ResponseEntity.ok(ventas);
+        return PaginationUtils.buildPaginatedResponse(ventas);
     }
 
     @Operation(
@@ -66,7 +68,7 @@ public class VentaController {
             schema = @Schema(implementation = VentaResponse.class)))
     })
     @GetMapping("/buscarVenta")
-    public ResponseEntity<Page<VentaResponse>> getAllByFechaAndProduct(
+    public PaginatedResponse<VentaResponse> getAllByFechaAndProduct(
         @RequestParam("fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
         @RequestParam("fechaFin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
         @RequestParam(value = "idProducto", required = false) Long idProducto,
@@ -82,7 +84,7 @@ public class VentaController {
         request.setFechaFin(fin);
         request.setIdProducto(idProducto);
         Page<VentaResponse> ventas = ventaService.findByFechaAndProducto(request, pageable);
-        return ResponseEntity.ok(ventas);
+        return PaginationUtils.buildPaginatedResponse(ventas);
     }
 
     @Operation(
@@ -104,7 +106,7 @@ public class VentaController {
         return ResponseEntity.ok(venta);
     }
 
-    @Operation(
+    @Operation( 
         summary = "Registar una nueva venta",
         description = "Registra una nueva venta y retorna la venta creada"
     )
