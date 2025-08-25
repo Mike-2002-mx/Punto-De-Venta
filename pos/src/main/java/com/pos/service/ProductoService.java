@@ -60,7 +60,7 @@ public class ProductoService {
 
     @Transactional
     public ProductoResponse create(ProductoRequest productoDTO) {
-        if (productoRepository.existsByCodigoBarras(productoDTO.getCodigoBarras())) {
+        if (productoRepository.existsByCodigoBarras(productoDTO.getCodigoBarras().toLowerCase())) {
             throw new ResourceAlreadyExistsException("Ya existe un producto con el código de barras: " + productoDTO.getCodigoBarras());
         }
         
