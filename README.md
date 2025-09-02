@@ -1,4 +1,4 @@
-# Point of Sale (POS) System Backend
+****# Point of Sale (POS) System Backend
 The Point Of Sale (POS) frontend designed to support business operations with:
 - Sales Module - Handle product sales.
 - Inventory Module - Track and manage products in stock.
@@ -59,7 +59,7 @@ psql --version
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/your-username/Punto-De-Venta.git
+git clone https://github.com/Mike-2002-mx/Punto-De-Venta.git
 cd Punto-De-Venta
 ```
 
